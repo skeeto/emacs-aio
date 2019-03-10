@@ -74,7 +74,7 @@ by the originating async function. YIELD-RESULT is the value
 function result directly from the previously yielded promise."
   (condition-case _
       (cl-loop for result = (iter-next iter yield-result)
-               then (iter-next iter result)
+               then (iter-next iter (lambda () result))
                until (aio-promise-p result)
                finally (aio-listen result
                                    (lambda (value)
