@@ -138,7 +138,7 @@ value, or any uncaught error signal."
   (declare (indent defun))
   `(defalias ',name (aio-lambda ,arglist ,@body)))
 
-(defun aio-timeout (promise seconds)
+(aio-defun aio-timeout (promise seconds)
   "Create a promise based on PROMISE with a timeout after SECONDS.
 
 If PROMISE resolves first, the timeout promise resolves to its
@@ -149,11 +149,11 @@ Note: The original asynchronous task is, of course, not actually
 canceled by the timeout, which may matter in some cases. For this
 reason it's preferable for the originator of the promise to
 support timeouts directly."
-  (let ((result (aio-promise))
-        (timeout (lambda () (signal 'aio-timeout seconds))))
-    (prog1 result
-      (aio-listen promise (lambda (value) (aio-resolve result value)))
-      (run-at-time seconds nil #'aio-resolve result timeout))))
+  (let ((timeout (aio-promise)))
+    (run-at-time seconds nil #'aio-resolve timeout
+                 (lambda () (signal 'aio-timeout seconds)))
+    (let ((fastest-promise (aio-await (aio-select (list promise timeout)))))
+      (funcall (aio-result fastest-promise)))))
 
 ;; Useful promise-returning functions:
 
