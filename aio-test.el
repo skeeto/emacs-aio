@@ -107,14 +107,22 @@
           (setf last result))))))
 
 (aio-deftest process-sentinel ()
-  (let ((process (start-process-shell-command "test" nil "")))
+  (let ((process (start-process-shell-command "test" nil "exit 0")))
     (aio-should equal
                 "finished\n"
                 (aio-await (aio-process-sentinel process)))))
 
 (aio-deftest process-filter ()
-  (let ((process (start-process-shell-command
-                  "test" nil "echo a b c; sleep 1; echo 1 2 3; sleep 1")))
+  (let* ((command
+          (if (eq system-type 'windows-nt)
+              (mapconcat #'identity
+                         '("echo a b c"
+                           "waitfor /t 1 x 2>nul"
+                           "echo 1 2 3"
+                           "waitfor /t 1 x 2>nul")
+                         "&")
+            "echo a b c; sleep 1; echo 1 2 3; sleep 1"))
+         (process (start-process-shell-command "test" nil command)))
     (aio-should equal
                 "a b c\n"
                 (aio-await (aio-process-filter process)))
