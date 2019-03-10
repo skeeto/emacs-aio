@@ -20,8 +20,8 @@ For example:
 (aio-defun foo (url)
   (aio-await (aio-sleep 3))
   (message "Done sleeping. Now fetching %s" url)
-  (let* ((buffer (aio-await (aio-url-retrieve url)))
-         (contents (with-current-buffer buffer
+  (let* ((result (aio-await (aio-url-retrieve url)))
+         (contents (with-current-buffer (cdr result)
                      (prog1 (buffer-string)
                        (kill-buffer)))))
     (message "Result: %s" contents)))
