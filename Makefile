@@ -10,7 +10,7 @@ clean:
 	rm -f aio.elc aio-test.elc
 
 check: aio.elc aio-test.elc
-	emacs -Q -nw -L . -l aio-test.elc -f aio-run-tests
+	$(EMACS) -Q -nw -L . -l aio-test.elc -f aio-run-tests
 
 .SUFFIXES: .el .elc
 .el.elc:
