@@ -121,12 +121,14 @@ returns a promise that will resolve to the function's return
 value, or any uncaught error signal."
   (declare (indent defun))
   (let ((args (make-symbol "args"))
-        (promise (make-symbol "promise")))
+        (promise (make-symbol "promise"))
+        (split-body (macroexp-parse-body body)))
     `(lambda (&rest ,args)
+       ,@(car split-body)
        (let* ((,promise (aio-promise))
               (iter (apply (iter-lambda ,arglist
                              (aio-with-promise ,promise
-                               ,@body))
+                               ,@(cdr split-body)))
                            ,args)))
          (prog1 ,promise
            (aio--step iter ,promise nil))))))
