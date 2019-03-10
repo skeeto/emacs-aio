@@ -119,7 +119,8 @@ The body of this function may use `aio-await' to wait on
 promises. When an async function is called, it immediately
 returns a promise that will resolve to the function's return
 value, or any uncaught error signal."
-  (declare (indent defun))
+  (declare (indent defun)
+           (doc-string 3))
   (let ((args (make-symbol "args"))
         (promise (make-symbol "promise"))
         (split-body (macroexp-parse-body body)))
@@ -135,7 +136,8 @@ value, or any uncaught error signal."
 
 (defmacro aio-defun (name arglist &rest body)
   "Like `aio-lambda' but gives the function a name like `defun'."
-  (declare (indent defun))
+  (declare (indent defun)
+           (doc-string 3))
   `(defalias ',name (aio-lambda ,arglist ,@body)))
 
 (aio-defun aio-timeout (promise seconds)
