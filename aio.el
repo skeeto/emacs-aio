@@ -103,10 +103,10 @@ promise and rethrown in the promise's listeners."
   "If EXPR evaluates to a promise, pause until the promise is resolved.
 
 Pausing an async function does not block Emacs' main thread. If
-EXPR doesn't evaluate to a promise, it is returned immediately
-and the function is no paused. Since async functions return
-promises, async functions can await directly on other async
-functions using this macro.
+EXPR doesn't evaluate to a promise, the value is returned
+immediately and the function is not paused. Since async functions
+return promises, async functions can await directly on other
+async functions using this macro.
 
 This macro can only be used inside an async function, either
 `aio-lambda' or `aio-defun'."
