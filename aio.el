@@ -205,10 +205,11 @@ automatically wrapped with a value function (see `aio-resolve')."
 (defun aio-url-retrieve (url &optional silent inhibit-cookies)
   "Wraps `url-retrieve' in a promise.
 
-This function will never signal an error. Instead any errors will
-be delivered via the returned promise. The promise result is a
-cons of (status . buffer). This buffer is a clone of the buffer
-created by `url-retrieve' and should be killed by the caller."
+This function will never directly signal an error. Instead any
+errors will be delivered via the returned promise. The promise
+result is a cons of (status . buffer). This buffer is a clone of
+the buffer created by `url-retrieve' and should be killed by the
+caller."
   (let ((promise (aio-promise)))
     (prog1 promise
       (condition-case error
