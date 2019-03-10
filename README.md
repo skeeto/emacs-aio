@@ -5,6 +5,8 @@ package builds upon Emacs 25 generators to provide functions that
 pause while they wait on asynchronous events. They do not block any
 thread while paused.
 
+See also: [An Async / Await Library for Emacs Lisp][post]
+
 ## Usage
 
 An async function is defined using `aio-defun` or `aio-lambda`. The
@@ -78,3 +80,4 @@ defined by this package.
 
 
 [asyncio]: https://docs.python.org/3/library/asyncio.html
+[post]: https://nullprogram.com/blog/2019/03/10/
