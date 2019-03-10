@@ -171,11 +171,10 @@ retrieve its value."
                                 (aio-resolve result (lambda () promise))
                                 (setf result nil))))))))
 
-(defun aio-all (promises)
+(aio-defun aio-all (promises)
   "Return a promise that resolves when all PROMISES are resolved."
-  (funcall (aio-lambda ()
-             (dolist (promise promises)
-               (aio-await promise)))))
+  (dolist (promise promises)
+    (aio-await promise)))
 
 (defun aio-catch (promise)
   "Return a new promise that wraps PROMISE but will never signal.
