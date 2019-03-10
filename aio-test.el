@@ -74,11 +74,15 @@
     (aio-should eq :b (aio-await (funcall sub :b)))))
 
 (aio-deftest timeout ()
-  (let ((sleep (aio-sleep 1 t)))
+  (let ((sleep-1 (aio-sleep 1.0 t))
+        (sleep-2 (aio-sleep 0.1 t)))
     (prog1 nil
       (aio-should equal
                   '(:error aio-timeout . 0.5)
-                  (aio-await (aio-catch (aio-timeout sleep 0.5)))))))
+                  (aio-await (aio-catch (aio-timeout sleep-1 0.5))))
+      (aio-should equal
+                  '(:success . t)
+                  (aio-await (aio-catch (aio-timeout sleep-1 0.5)))))))
 
 (defun aio-test--shuffle (values)
   "Return a shuffled copy of VALUES."
