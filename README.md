@@ -72,7 +72,7 @@ defined by this package.
 (aio-select promises)
 ;; Return a promise that resolves when any in PROMISES resolves.
 
-(aio-all (promises)
+(aio-all promises)
 ;; Return a promise that resolves when all PROMISES are resolved."
 ```
 
