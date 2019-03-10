@@ -4,7 +4,7 @@ EMACS = emacs
 compile: aio.elc aio-test.elc
 
 aio.elc: aio.el
-aio-test.elc: aio-test.el
+aio-test.elc: aio-test.el aio.elc
 
 clean:
 	rm -f aio.elc aio-test.elc
