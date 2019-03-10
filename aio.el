@@ -72,18 +72,14 @@ value or rethrows a signal."
 PROMISE is the return promise of the iterator, which was returned
 by the originating async function. YIELD-RESULT is the value
 function result directly from the previously yielded promise."
-  (condition-case error
+  (condition-case _
       (cl-loop for result = (iter-next iter yield-result)
                then (iter-next iter result)
                until (aio-promise-p result)
                finally (aio-listen result
                                    (lambda (value)
                                      (aio--step iter promise value))))
-    (iter-end-of-sequence)
-    ;; Rethrow in caller
-    (error (aio-resolve promise
-                        (lambda ()
-                          (signal (car error) (cdr error)))))))
+    (iter-end-of-sequence)))
 
 (defmacro aio-with-promise (promise &rest body)
   "Evaluate BODY and resolve PROMISE with the result.
