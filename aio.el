@@ -87,7 +87,7 @@ function result directly from the previously yielded promise."
 If the body signals an error, this error will be stored in the
 promise and rethrown in the promise's listeners."
   (declare (indent defun))
-  (cl-assert lexical-binding t)
+  (cl-assert (eq lexical-binding t))
   `(aio-resolve ,promise
                 (condition-case error
                     (let ((result (progn ,@body)))
