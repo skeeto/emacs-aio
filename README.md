@@ -7,6 +7,8 @@ thread while paused.
 
 See also: [An Async / Await Library for Emacs Lisp][post]
 
+Because it uses `record`, this package requires Emacs 26 or later.
+
 ## Usage
 
 An async function is defined using `aio-defun` or `aio-lambda`. The
