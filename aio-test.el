@@ -74,15 +74,22 @@
     (aio-should eq :b (aio-await (funcall sub :b)))))
 
 (aio-deftest timeout ()
-  (let ((sleep-1 (aio-sleep 1.0 t))
-        (sleep-2 (aio-sleep 0.1 t)))
-    (prog1 nil
-      (aio-should equal
-                  '(:error aio-timeout . 0.5)
-                  (aio-await (aio-catch (aio-timeout sleep-1 0.5))))
-      (aio-should equal
-                  '(:success . t)
-                  (aio-await (aio-catch (aio-timeout sleep-1 0.5)))))))
+  (let ((sleep (aio-sleep 1.0 t))
+        (timeout (aio-timeout 0.5))
+        (select (aio-make-select)))
+    (aio-select-add select sleep)
+    (aio-select-add select timeout)
+    (aio-should equal
+                '(:error aio-timeout . 0.5)
+                (aio-await (aio-catch (aio-await (aio-select select))))))
+  (let ((sleep (aio-sleep 0.1 t))
+        (timeout (aio-timeout 0.5))
+        (select (aio-make-select)))
+    (aio-select-add select sleep)
+    (aio-select-add select timeout)
+    (aio-should equal
+                '(:success . t)
+                (aio-await (aio-catch (aio-await (aio-select select)))))))
 
 (defun aio-test--shuffle (values)
   "Return a shuffled copy of VALUES."
@@ -96,12 +103,13 @@
   (let* ((values (cl-loop for i from 5 to 60
                           collect (/ i 20.0) into values
                           finally return (aio-test--shuffle values)))
-         (promises (cl-loop for value in values
-                            collect (aio-sleep value value)))
+         (count (length values))
+         (select (aio-make-select))
+         (promises (dolist (value values)
+                     (aio-select-add select (aio-sleep value value))))
          (last 0.0))
-    (while promises
-      (let ((promise (aio-await (aio-select promises))))
-        (setf promises (delq promise promises))
+    (dotimes (_ count)
+      (let ((promise (aio-await (aio-select select))))
         (let ((result (aio-await promise)))
           (aio-should > result last)
           (setf last result))))))

@@ -93,11 +93,32 @@ defined by this package.
 (aio-url-retrieve url &optional silent inhibit-cookies)
 ;; Wraps `url-retrieve' in a promise.
 
-(aio-select promises)
-;; Return a promise that resolves when any in PROMISES resolves.
-
 (aio-all promises)
 ;; Return a promise that resolves when all PROMISES are resolved."
+```
+
+## Select API
+
+This package includes a select()-like API for waiting on multiple
+promises at a time. Create a "select" object, add promises to it, and
+await on it. Resolved and returned promises are automatically removed,
+and the "select" object can be reused.
+
+```el
+(aio-make-select &optional promises)
+;; Create a new `aio-select' object for waiting on multiple promises.
+
+(aio-select-add select promise)
+;; Add PROMISE to the set of promises in SELECT.
+
+(aio-select-remove select promise)
+;; Remove PROMISE form the set of promises in SELECT.
+
+(aio-select-promises select)
+;; Return a list of promises in SELECT.
+
+(aio-select select)
+;; Return a promise that resolves when any promise in SELECT resolves.
 ```
 
 

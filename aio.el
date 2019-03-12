@@ -139,23 +139,6 @@ value, or any uncaught error signal."
            (doc-string 3))
   `(defalias ',name (aio-lambda ,arglist ,@body)))
 
-(aio-defun aio-timeout (promise seconds)
-  "Create a promise based on PROMISE with a timeout after SECONDS.
-
-If PROMISE resolves first, the timeout promise resolves to its
-value rather than a timeout. When the timeout is reached, the
-aio-timeout symbol is signaled for the result.
-
-Note: The original asynchronous task is, of course, not actually
-canceled by the timeout, which may matter in some cases. For this
-reason it's preferable for the originator of the promise to
-support timeouts directly."
-  (let ((timeout (aio-promise)))
-    (run-at-time seconds nil #'aio-resolve timeout
-                 (lambda () (signal 'aio-timeout seconds)))
-    (let ((fastest-promise (aio-await (aio-select (list promise timeout)))))
-      (funcall (aio-result fastest-promise)))))
-
 (defun aio-cancel (promise &optional reason)
   "Attempt to cancel PROMISE, returning non-nil if successful.
 
@@ -193,20 +176,6 @@ a chain of promise-yielding promises."
 ;; Useful promise-returning functions:
 
 (require 'url)
-
-(defun aio-select (promises)
-  "Return a new promise that resolves when any in PROMISES resolves.
-
-The result of the returned promise is the input promise that
-completed. Use an additional `aio-await' or `aio-result' to
-retrieve its value."
-  (let ((result (aio-promise)))
-    (prog1 result
-      (dolist (promise promises)
-        (aio-listen promise (lambda (_)
-                              (when result
-                                (aio-resolve result (lambda () promise))
-                                (setf result nil))))))))
 
 (aio-defun aio-all (promises)
   "Return a promise that resolves when all PROMISES are resolved."
@@ -248,6 +217,13 @@ automatically wrapped with a value function (see `aio-resolve')."
     (prog1 promise
       (run-with-idle-timer seconds nil
                            #'aio-resolve promise (lambda () result)))))
+
+(defun aio-timeout (seconds)
+  "Create a promise with a timeout error after SECONDS."
+  (let ((timeout (aio-promise)))
+    (prog1 timeout
+      (run-at-time seconds nil#'aio-resolve timeout
+                   (lambda () (signal 'aio-timeout seconds))))))
 
 (defun aio-url-retrieve (url &optional silent inhibit-cookies)
   "Wraps `url-retrieve' in a promise.
@@ -305,6 +281,80 @@ The `aio-chain' macro makes it easier to use these promises."
                 (aio-resolve promise (lambda () result))
                 (setf promise next-promise))))))
     (cons callback promise)))
+
+;; An efficient select()-like interface for promises
+
+(defun aio-make-select (&optional promises)
+  "Create a new `aio-select' object for waiting on multiple promises."
+  (let ((select (record 'aio-select
+                        ;; Membership table
+                        (make-hash-table :test 'eq)
+                        ;; "Seen" table (avoid adding multiple callback)
+                        (make-hash-table :test 'eq :weakness 'key)
+                        ;; List of pending resolved promises
+                        ()
+                        ;; Callback to resolve select's own promise
+                        nil)))
+    (prog1 select
+      (dolist (promise promises)
+        (aio-select-add select promise)))))
+
+(defun aio-select-add (select promise)
+  "Add PROMISE to the set of promises in SELECT.
+
+SELECT is created with `aio-make-select'. It is valid to add a
+promise that was previously removed."
+  (let ((members (aref select 1))
+        (seen (aref select 2)))
+    (prog1 promise
+      (unless (gethash promise seen)
+        (setf (gethash promise seen) t
+              (gethash promise members) t)
+        (aio-listen promise
+                    (lambda (_)
+                      (when (gethash promise members)
+                        (push promise (aref select 3))
+                        (remhash promise members)
+                        (let ((callback (aref select 4)))
+                          (when callback
+                            (setf (aref select 4) nil)
+                            (funcall callback))))))))))
+
+(defun aio-select-remove (select promise)
+  "Remove PROMISE form the set of promises in SELECT.
+
+SELECT is created with `aio-make-select'."
+  (remhash promise (aref select 1)))
+
+(defun aio-select-promises (select)
+  "Return a list of promises in SELECT.
+
+SELECT is created with `aio-make-select'. "
+  (cl-loop for key being the hash-keys of (aref select 1)
+           collect key))
+
+(defun aio-select (select)
+  "Return a promise that resolves when any promise in SELECT resolves.
+
+SELECT is created with `aio-make-select'. This function is
+level-triggered: if a promise in SELECT is already resolved, it
+returns immediately with that promise. Promises returned by
+`aio-select' are automatically removed from SELECT. Use this
+function to repeatedly wait on a set of promises.
+
+Note: The promise returned by this function resolves to another
+promise, not that promise's result. You will need to `aio-await'
+on it, or use `aio-result'."
+  (let* ((result (aio-promise))
+         (callback (lambda ()
+                     (let* ((pending (nreverse (aref select 3)))
+                            (promise (pop pending)))
+                       (aio-resolve result (lambda () promise))
+                       (setf (aref select 3) (nreverse pending))))))
+    (prog1 result
+      (if (aref select 3)
+          (funcall callback)
+        (setf (aref select 4) callback)))))
 
 (provide 'aio)
 
