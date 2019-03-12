@@ -20,6 +20,8 @@
 (require 'generator)
 
 ;; Register new error types
+(setf (get 'aio-cancel 'error-conditions) '(aio-cancel error)
+      (get 'aio-cancel 'error-message) "Timeout was canceled")
 (setf (get 'aio-timeout 'error-conditions) '(aio-timeout error)
       (get 'aio-timeout 'error-message) "Timeout was reached")
 
@@ -153,6 +155,14 @@ support timeouts directly."
                  (lambda () (signal 'aio-timeout seconds)))
     (let ((fastest-promise (aio-await (aio-select (list promise timeout)))))
       (funcall (aio-result fastest-promise)))))
+
+(defun aio-cancel (promise &optional reason)
+  "Attempt to cancel PROMISE, returning non-nil if successful.
+
+All awaiters will receive an aio-cancel signal. The actual
+underlying asynchronous operation will not actually be canceled."
+  (unless (aio-result promise)
+    (aio-resolve promise (lambda () (signal 'aio-cancel reason)))))
 
 ;; Useful promise-returning functions:
 
