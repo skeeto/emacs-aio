@@ -43,6 +43,7 @@ called (e.g. `funcall') in order to retrieve the value."
 
 (defun aio-listen (promise callback)
   "Add CALLBACK to PROMISE.
+
 If the promise has already been resolved, the callback will be
 scheduled for the next event loop turn."
   (let ((result (aio-result promise)))
