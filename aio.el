@@ -164,6 +164,21 @@ underlying asynchronous operation will not actually be canceled."
   (unless (aio-result promise)
     (aio-resolve promise (lambda () (signal 'aio-cancel reason)))))
 
+(defmacro aio-with-async (&rest body)
+  "Evaluate BODY asynchronously as if it was inside `aio-lambda'.
+
+Since BODY is evalued inside an asynchronous lambda, `aio-await'
+is available here. This macro evaluates to a promise for BODY's
+eventual result."
+  (declare (indent 0))
+  `(let ((promise (funcall (aio-lambda ()
+                             (aio-await (aio-sleep 0))
+                             ,@body))))
+     (prog1 promise
+       ;; The is the main feature: Force the final result to be
+       ;; realized so that errors are reported.
+       (aio-listen promise #'funcall))))
+
 ;; Useful promise-returning functions:
 
 (require 'url)
