@@ -179,6 +179,17 @@ eventual result."
        ;; realized so that errors are reported.
        (aio-listen promise #'funcall))))
 
+(defmacro aio-chain (expr)
+  "`aio-await' on EXPR and replace place EXPR with the next promise.
+
+EXPR must be setf-able. Returns (cdr result). This macro is
+intended to be used with `aio-make-callback' in order to follow
+a chain of promise-yielding promises."
+  (let ((result (make-symbol "result")))
+    `(let ((,result (aio-await ,expr)))
+       (setf ,expr (car ,result))
+       (cdr ,result))))
+
 ;; Useful promise-returning functions:
 
 (require 'url)
@@ -247,56 +258,35 @@ caller."
                             (lambda ()
                               (signal (car error) (cdr error)))))))))
 
-(defun aio-process-sentinel (process)
-  "Return a promise representing the sentinel of PROCESS.
+(defun aio-make-callback (&optional tag)
+  "Return a new callback function and its first promise.
 
-This promise resolves to the status string passed to the sentinel
-function. It is safe to apply this function multiple times to the
-same process."
-  (let ((old-promise (process-get process :aio-sentinel)))
-    (if old-promise
-        old-promise
-      (let* ((promise (aio-promise))
-             (callback (lambda (process status)
-                         (setf (process-sentinel process) nil
-                               (process-get process :aio-sentinel) nil)
-                         (aio-resolve promise (lambda () status)))))
-        (prog1 promise
-          (setf (process-sentinel process) callback
-                (process-get process :aio-sentinel) promise))))))
+Returns a cons (callback . promise) where callback is function
+suitable for repeated invocation. This makes it useful for
+process filters and sentinels. The promise is the first promise
+to be resolved by the callback.
 
-(defun aio-process-filter (process)
-  "Return a promise representing the filter of PROCESS.
+The promise resolves to:
+  (next-promise . callback-args)
+Or when TAG is supplied:
+  (next-promise TAG . callback-args)
 
-This promise resolves to the process output string passed to the
-filter. If the process terminates, this promise resolves to nil.
+The callback resolves next-promise on the next invocation. This
+creates a chain of promises representing the sequence of calls.
+Note: To avoid keeping lots of garbage in memory, avoid holding
+onto the first promise (i.e. capturing it in a closure).
 
-It is safe to apply this function multiple times to the same
-process. In fact, if the last filter promise has been resolved,
-it is necessary to use this function to create a promise for the
-next chunk of output."
-  (let ((old-filter (process-get process :aio-filter)))
-    (if old-filter
-        old-filter
-      (let* ((promise (aio-promise))
-             (sentinel (aio-process-sentinel process))
-             (callback (lambda (process output)
-                         (setf (process-filter process) nil
-                               (process-get process :aio-filter) nil)
-                         (aio-resolve promise (lambda () output))))
-             (finalizer nil))
-        (prog1 promise
-          ;; Use setf to allow anonymous function to reference itself
-          (setf finalizer
-                (lambda (_)
-                  (if (process-live-p process)
-                      ;; Reregister sentinel
-                      (aio-listen sentinel finalizer)
-                    (funcall callback process nil))))
-          ;; Also monitor the process sentinel
-          (aio-listen sentinel finalizer)
-          (setf (process-filter process) callback
-                (process-get process :aio-filter) promise))))))
+The `aio-chain' macro makes it easier to use these promises."
+  (let* ((promise (aio-promise))
+         (callback
+          (lambda (&rest args)
+            (let* ((next-promise (aio-promise))
+                   (result (if tag
+                               (cons next-promise (cons tag args))
+                             (cons next-promise args))))
+              (aio-resolve promise (lambda () result))
+              (setf promise next-promise)))))
+    (cons callback promise)))
 
 (provide 'aio)
 

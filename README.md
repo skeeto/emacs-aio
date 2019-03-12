@@ -55,7 +55,30 @@ async-friendly function is simple. Create a new promise object with
 chain onto an existing promise, use `aio-listen` to attach a new
 callback.
 
-## Promise-returning functions
+## Utility macros and functions
+
+```el
+(aio-cancel promise)
+;; Attempt to cancel PROMISE, returning non-nil if successful.
+
+(aio-with-promise promise &rest body) [macro]
+;; Evaluate BODY and resolve PROMISE with the result.
+
+(aio-with-async &rest body) [macro]
+;; Evaluate BODY asynchronously as if it was inside `aio-lambda'.
+
+(aio-make-callback &optional tag)
+;; Return a new callback function and its first promise.
+
+(aio-chain expr) [macro]
+;; `aio-await' on EXPR and replace place EXPR with the next promise.
+```
+
+The `aio-make-callback` function is useful for callbacks that are
+invoked repeatedly, such as process filters and sentinels. The
+`aio-chain` macro works in conjunction.
+
+## Awaitable functions
 
 Here are some useful promise-returning — i.e. awaitable — functions
 defined by this package.
@@ -66,12 +89,6 @@ defined by this package.
 
 (aio-url-retrieve url &optional silent inhibit-cookies)
 ;; Wraps `url-retrieve' in a promise.
-
-(aio-process-sentinel process)
-;; Return a promise representing the sentinel of PROCESS.
-
-(aio-process-filter process)
-;; Return a promise representing the filter of PROCESS.
 
 (aio-select promises)
 ;; Return a promise that resolves when any in PROMISES resolves.

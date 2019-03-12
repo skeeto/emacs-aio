@@ -107,10 +107,12 @@
           (setf last result))))))
 
 (aio-deftest process-sentinel ()
-  (let ((process (start-process-shell-command "test" nil "exit 0")))
+  (let ((process (start-process-shell-command "test" nil "exit 0"))
+        (sentinel (aio-make-callback)))
+    (setf (process-sentinel process) (car sentinel))
     (aio-should equal
                 "finished\n"
-                (aio-await (aio-process-sentinel process)))))
+                (nth 1 (aio-chain (cdr sentinel))))))
 
 (aio-deftest process-filter ()
   (let* ((command
@@ -122,13 +124,12 @@
                            "waitfor /t 1 x 2>nul")
                          "&")
             "echo a b c; sleep 1; echo 1 2 3; sleep 1"))
-         (process (start-process-shell-command "test" nil command)))
+         (process (start-process-shell-command "test" nil command))
+         (filter (aio-make-callback)))
+    (setf (process-filter process) (car filter))
     (aio-should equal
                 "a b c\n"
-                (aio-await (aio-process-filter process)))
+                (nth 1 (aio-chain (cdr filter))))
     (aio-should equal
                 "1 2 3\n"
-                (aio-await (aio-process-filter process)))
-    (aio-should equal
-                nil
-                (aio-await (aio-process-filter process)))))
+                (nth 1 (aio-chain (cdr filter))))))
