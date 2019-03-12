@@ -268,7 +268,7 @@ caller."
                             (lambda ()
                               (signal (car error) (cdr error)))))))))
 
-(defun aio-make-callback (&optional tag)
+(cl-defun aio-make-callback (&key tag once)
   "Return a new callback function and its first promise.
 
 Returns a cons (callback . promise) where callback is function
@@ -280,6 +280,8 @@ The promise resolves to:
   (next-promise . callback-args)
 Or when TAG is supplied:
   (next-promise TAG . callback-args)
+Or if ONCE is non-nil:
+  callback-args
 
 The callback resolves next-promise on the next invocation. This
 creates a chain of promises representing the sequence of calls.
@@ -289,13 +291,19 @@ onto the first promise (i.e. capturing it in a closure).
 The `aio-chain' macro makes it easier to use these promises."
   (let* ((promise (aio-promise))
          (callback
-          (lambda (&rest args)
-            (let* ((next-promise (aio-promise))
-                   (result (if tag
-                               (cons next-promise (cons tag args))
-                             (cons next-promise args))))
-              (aio-resolve promise (lambda () result))
-              (setf promise next-promise)))))
+          (if once
+              (lambda (&rest args)
+                (let ((result (if tag
+                                  (cons tag args)
+                                args)))
+                  (aio-resolve promise (lambda () result))))
+            (lambda (&rest args)
+              (let* ((next-promise (aio-promise))
+                     (result (if tag
+                                 (cons next-promise (cons tag args))
+                               (cons next-promise args))))
+                (aio-resolve promise (lambda () result))
+                (setf promise next-promise))))))
     (cons callback promise)))
 
 (provide 'aio)

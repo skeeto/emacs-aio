@@ -67,7 +67,7 @@ callback.
 (aio-with-async &rest body) [macro]
 ;; Evaluate BODY asynchronously as if it was inside `aio-lambda'.
 
-(aio-make-callback &optional tag)
+(aio-make-callback &key tag once)
 ;; Return a new callback function and its first promise.
 
 (aio-chain expr) [macro]
