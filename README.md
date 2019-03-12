@@ -87,6 +87,9 @@ defined by this package.
 (aio-sleep seconds &optional result)
 ;; Return a promise that is resolved after SECONDS with RESULT.
 
+(aio-idle seconds &optional result)
+;; Return a promise that is resolved after idle SECONDS with RESULT.
+
 (aio-url-retrieve url &optional silent inhibit-cookies)
 ;; Wraps `url-retrieve' in a promise.
 

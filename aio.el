@@ -237,7 +237,17 @@ automatically wrapped with a value function (see `aio-resolve')."
   (let ((promise (aio-promise)))
     (prog1 promise
       (run-at-time seconds nil
-                   (lambda () (aio-resolve promise (lambda () result)))))))
+                   #'aio-resolve promise (lambda () result)))))
+
+(defun aio-idle (seconds &optional result)
+  "Create a promise that is resolved after idle SECONDS with RESULT.
+
+The result is a value, not a value function, and it will be
+automatically wrapped with a value function (see `aio-resolve')."
+  (let ((promise (aio-promise)))
+    (prog1 promise
+      (run-with-idle-timer seconds nil
+                           #'aio-resolve promise (lambda () result)))))
 
 (defun aio-url-retrieve (url &optional silent inhibit-cookies)
   "Wraps `url-retrieve' in a promise.
