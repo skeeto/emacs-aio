@@ -356,6 +356,34 @@ on it, or use `aio-result'."
           (funcall callback)
         (setf (aref select 4) callback)))))
 
+;; Semaphores
+
+(defun aio-sem (init)
+  "Create a new semaphore with initial value INIT."
+  (record 'aio-sem init ()))
+
+(defun aio-sem-post (sem)
+  "Increment the value of SEM.
+
+If asynchronous functions are awaiting on SEM, then one will be
+woken up. This function is not awaitable."
+  (let ((value (cl-incf (aref sem 1))))
+    (when (<= value 0)
+      (let ((waiting (nreverse (aref sem 2))))
+        (aio-resolve (pop waiting) (lambda () nil))
+        (setf (aref sem 2) (nreverse waiting))))))
+
+(defun aio-sem-wait (sem)
+  "Decrement the value of SEM.
+
+If SEM is at zero, returns a promise that will resolve when
+another asynchronous function uses `aio-sem-post'."
+  (let ((value (cl-decf (aref sem 1))))
+    (when (< value 0)
+      (let ((promise (aio-promise)))
+        (prog1 promise
+          (push promise (aref sem 2)))))))
+
 (provide 'aio)
 
 ;;; aio.el ends here

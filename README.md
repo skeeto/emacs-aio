@@ -121,6 +121,36 @@ and the "select" object can be reused.
 ;; Return a promise that resolves when any promise in SELECT resolves.
 ```
 
+## Semaphore API
+
+```el
+(aio-sem init)
+;; Create a new semaphore with initial value INIT.
+
+(aio-sem-post sem)
+;; Increment the value of SEM.
+
+(aio-sem-wait sem)
+;; Decrement the value of SEM.
+```
+
+This can be used to create a work queue. For example, here's a
+configurable download queue for `url-retrieve`:
+
+```el
+(defun fetch (url-list max-parallel callback)
+  (let ((sem (aio-sem max-parallel)))
+    (dolist (url url-list)
+      (aio-with-async
+        (aio-await (aio-sem-wait sem))
+        (cl-destructuring-bind (status . buffer)
+            (aio-await (aio-url-retrieve url))
+          (aio-sem-post sem)
+          (funcall callback
+                   (with-current-buffer buffer
+                     (prog1 (buffer-string)
+                       (kill-buffer)))))))))
+```
 
 [asyncio]: https://docs.python.org/3/library/asyncio.html
 [post]: https://nullprogram.com/blog/2019/03/10/
