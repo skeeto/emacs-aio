@@ -28,7 +28,7 @@
                    for cb =
                    (let ((test-name name))
                      (lambda (value)
-                       (insert (format "%S: %S\n" test-name (funcall value)))))
+                       (princ (format "%S: %S\n" test-name (funcall value)))))
                    collect promise
                    do (aio-listen (aio-catch promise) cb)))
          (done (aio-all promises)))
@@ -36,17 +36,20 @@
     (erase-buffer)
     (aio-listen done (lambda (_)
                        (with-current-buffer buffer
-                         (insert "*** aio-run-tests complete ***\n")
-                         (insert (format "%d / %d PASS\n"
-                                         (- aio-test-total aio-test-failures)
-                                         aio-test-total)))))))
+                         (princ "*** aio-run-tests complete ***\n")
+                         (princ (format "%d / %d PASS\n"
+                                        (- aio-test-total aio-test-failures)
+                                        aio-test-total))
+                         (kill-emacs))))
+    (while t
+      (accept-process-output))))
 
 (defun aio--should (result value-a value-b expr-a expr-b)
   (cl-incf aio-test-total)
   (unless result
     (cl-incf aio-test-failures)
-    (insert (format "FAIL:\n%S\n= %S\n%S\n= %S\n"
-                    expr-a value-a expr-b value-b))))
+    (princ (format "FAIL:\n%S\n= %S\n%S\n= %S\n"
+                   expr-a value-a expr-b value-b))))
 
 (defmacro aio-should (cmp expr-a expr-b)
   (let ((value-a (make-symbol "a"))
