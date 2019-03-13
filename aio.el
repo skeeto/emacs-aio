@@ -139,6 +139,12 @@ value, or any uncaught error signal."
            (doc-string 3))
   `(defalias ',name (aio-lambda ,arglist ,@body)))
 
+(defun aio-wait-for (promise)
+  "Synchronously wait for PROMISE, blocking the current thread."
+  (while (null (aio-result promise))
+    (accept-process-output))
+  (funcall (aio-result promise)))
+
 (defun aio-cancel (promise &optional reason)
   "Attempt to cancel PROMISE, returning non-nil if successful.
 

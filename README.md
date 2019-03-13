@@ -57,6 +57,9 @@ function, create a new promise object with `aio-promise`, then
 ## Utility macros and functions
 
 ```el
+(aio-wait-for promise)
+;; Synchronously wait for PROMISE, blocking the current thread.
+
 (aio-cancel promise)
 ;; Attempt to cancel PROMISE, returning non-nil if successful.
 
