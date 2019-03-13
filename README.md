@@ -49,11 +49,10 @@ function that awaits on that function.
 ;; *Messages*: Caught (arith-error)
 ```
 
-Converting a callback-based function into a promise-returning,
-async-friendly function is simple. Create a new promise object with
-`aio-promise`, then `aio-resolve` that promise in your callback. To
-chain onto an existing promise, use `aio-listen` to attach a new
-callback.
+To convert a callback-based function into an awaitable, async-friendly
+function, create a new promise object with `aio-promise`, then
+`aio-resolve` that promise in the callback. The helper function,
+`aio-make-callback`, makes this easy.
 
 ## Utility macros and functions
 
@@ -74,9 +73,9 @@ callback.
 ;; `aio-await' on EXPR and replace place EXPR with the next promise.
 ```
 
-The `aio-make-callback` function is useful for callbacks that are
-invoked repeatedly, such as process filters and sentinels. The
-`aio-chain` macro works in conjunction.
+The `aio-make-callback` function is especially useful for callbacks
+that are invoked repeatedly, such as process filters and sentinels.
+The `aio-chain` macro works in conjunction.
 
 ## Awaitable functions
 
