@@ -36,17 +36,20 @@ is captured by its return value promise and propagated into any
 function that awaits on that function.
 
 ```el
-(aio-defun arith-error-example ()
-  (/ 0 0))
+(aio-defun divide (a b)
+  (aio-await (aio-sleep 1))
+  (/ a b))
 
-(aio-defun consumer-example ()
+(aio-defun divide-safe (a b)
   (condition-case error
-      (aio-await (arith-error-example))
-    (arith-error (message "Caught %S" error))))
+      (aio-await (divide a b))
+    (arith-error :arith-error)))
 
-(consumer-example)
-;; => #s(aio-promise nil nil)
-;; *Messages*: Caught (arith-error)
+(aio-wait-for (divide-safe 1.0 2.0))
+;; => 0.5
+
+(aio-wait-for (divide-safe 0 0))
+;; => :arith-error
 ```
 
 To convert a callback-based function into an awaitable, async-friendly
@@ -101,10 +104,10 @@ defined by this package.
 
 ## Select API
 
-This package includes a select()-like API for waiting on multiple
-promises at a time. Create a "select" object, add promises to it, and
-await on it. Resolved and returned promises are automatically removed,
-and the "select" object can be reused.
+This package includes a select()-like, level-triggered API for waiting
+on multiple promises at once. Create a "select" object, add promises
+to it, and await on it. Resolved and returned promises are
+automatically removed, and the "select" object can be reused.
 
 ```el
 (aio-make-select &optional promises)
@@ -136,6 +139,13 @@ For example, here's an implementation of sleep sort:
 
 ## Semaphore API
 
+Semaphores work just as they would as a thread synchronization
+primitive. There's an internal counter that cannot drop below zero,
+and `aio-sem-wait` is an awaitable function that may block the
+asynchronous function until another asynchronous function calls
+`aio-sem-post`. Blocked functions wait in a FIFO queue and are awoken
+in the same order that they awaited.
+
 ```el
 (aio-sem init)
 ;; Create a new semaphore with initial value INIT.
@@ -164,6 +174,7 @@ configurable download queue for `url-retrieve`:
                      (prog1 (buffer-string)
                        (kill-buffer)))))))))
 ```
+
 
 [asyncio]: https://docs.python.org/3/library/asyncio.html
 [post]: https://nullprogram.com/blog/2019/03/10/
