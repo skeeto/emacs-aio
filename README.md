@@ -121,6 +121,17 @@ and the "select" object can be reused.
 ;; Return a promise that resolves when any promise in SELECT resolves.
 ```
 
+For example, here's an implementation of sleep sort:
+
+```el
+(aio-defun sleep-sort (values)
+  (let* ((promises (mapcar (lambda (v) (aio-sleep v v)) values))
+         (select (aio-make-select promises)))
+    (cl-loop repeat (length promises)
+             for next = (aio-await (aio-select select))
+             collect (aio-await next))))
+```
+
 ## Semaphore API
 
 ```el
