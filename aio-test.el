@@ -113,3 +113,25 @@ aio-timeout to cause the test to fail."
                      (nth 1 (aio-chain (cdr filter)))))
       (should (equal "1 2 3\n"
                      (nth 1 (aio-chain (cdr filter))))))))
+
+(ert-deftest sem ()
+  (aio-with-test 5
+    (let ((n 64)
+          (sem (aio-sem 0))
+          (promises ())
+          (output ()))
+      (dotimes (i n)
+        ;; Queue up threads on the semaphore
+        (push
+         (aio-with-async
+           (aio-await (aio-sem-wait sem))
+           (push i output))
+         promises))
+      ;; Allow threads to run
+      (dotimes (_ n)
+        (aio-sem-post sem))
+      ;; Wait for all threads to complete (join)
+      (aio-await (aio-all promises))
+      ;; Check that the threads ran in correct order
+      (should (equal (number-sequence 0 63)
+                     (nreverse output))))))
