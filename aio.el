@@ -2,6 +2,11 @@
 
 ;; This is free and unencumbered software released into the public domain.
 
+;; Author: Christopher Wellons <wellons@nullprogram.com>
+;; URL: https://github.com/skeeto/emacs-aio
+;; Version: 0.1
+;; Package-Requires: ((emacs "26.1"))
+
 ;;; Commentary:
 
 ;; The main components of this package are `aio-defun' / `aio-lambda'
