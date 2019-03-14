@@ -25,7 +25,7 @@
        (should (> (- (float-time) start)
                   1.4))))))
 
-(ert-deftest chain ()
+(ert-deftest repeat ()
   (aio-wait-for
    (aio-with-async
      (let ((sub (aio-lambda (result) (aio-await (aio-sleep .1 result)))))
