@@ -288,6 +288,35 @@ The `aio-chain' macro makes it easier to use these promises."
                 (setf promise next-promise))))))
     (cons callback promise)))
 
+;; A simple little queue
+
+(defsubst aio--queue-empty-p (queue)
+  "Return non-nil if QUEUE is empty.
+An empty queue is (nil . nil)."
+  (null (caar queue)))
+
+(defsubst aio--queue-get (queue)
+  "Get the next item from QUEUE, or nil for empty."
+  (let ((head (car queue)))
+    (cond ((null head)
+           nil)
+          ((eq head (cdr queue))
+           (prog1 (car head)
+             (setf (car queue) nil
+                   (cdr queue) nil)))
+          ((prog1 (car head)
+             (setf (car queue) (cdr head)))))))
+
+(defsubst aio--queue-put (queue element)
+  "Append ELEMENT to QUEUE, returning ELEMENT."
+  (let ((new (list element)))
+    (prog1 element
+      (if (null (car queue))
+          (setf (car queue) new
+                (cdr queue) new)
+        (setf (cdr (cdr queue)) new
+              (cdr queue) new)))))
+
 ;; An efficient select()-like interface for promises
 
 (defun aio-make-select (&optional promises)
@@ -297,8 +326,8 @@ The `aio-chain' macro makes it easier to use these promises."
                         (make-hash-table :test 'eq)
                         ;; "Seen" table (avoid adding multiple callback)
                         (make-hash-table :test 'eq :weakness 'key)
-                        ;; List of pending resolved promises
-                        ()
+                        ;; Queue of pending resolved promises
+                        (cons nil nil)
                         ;; Callback to resolve select's own promise
                         nil)))
     (prog1 select
@@ -319,7 +348,7 @@ promise that was previously removed."
         (aio-listen promise
                     (lambda (_)
                       (when (gethash promise members)
-                        (push promise (aref select 3))
+                        (aio--queue-put (aref select 3) promise)
                         (remhash promise members)
                         (let ((callback (aref select 4)))
                           (when callback
@@ -353,42 +382,40 @@ promise, not that promise's result. You will need to `aio-await'
 on it, or use `aio-result'."
   (let* ((result (aio-promise))
          (callback (lambda ()
-                     (let* ((pending (nreverse (aref select 3)))
-                            (promise (pop pending)))
-                       (aio-resolve result (lambda () promise))
-                       (setf (aref select 3) (nreverse pending))))))
+                     (let ((promise (aio--queue-get (aref select 3))))
+                       (aio-resolve result (lambda () promise))))))
     (prog1 result
-      (if (aref select 3)
-          (funcall callback)
-        (setf (aref select 4) callback)))))
+      (if (aio--queue-empty-p (aref select 3))
+          (setf (aref select 4) callback)
+        (funcall callback)))))
 
 ;; Semaphores
 
 (defun aio-sem (init)
   "Create a new semaphore with initial value INIT."
-  (record 'aio-sem init ()))
+  (record 'aio-sem
+          ;; Semaphore value
+          init
+          ;; Queue of waiting async functions
+          (cons nil nil)))
 
 (defun aio-sem-post (sem)
   "Increment the value of SEM.
 
 If asynchronous functions are awaiting on SEM, then one will be
 woken up. This function is not awaitable."
-  (let ((value (cl-incf (aref sem 1))))
-    (when (<= value 0)
-      (let ((waiting (nreverse (aref sem 2))))
-        (aio-resolve (pop waiting) (lambda () nil))
-        (setf (aref sem 2) (nreverse waiting))))))
+  (when (<= (cl-incf (aref sem 1)) 0)
+    (let ((waiting (aio--queue-get (aref sem 2))))
+      (when waiting
+        (aio-resolve waiting (lambda () nil))))))
 
 (defun aio-sem-wait (sem)
   "Decrement the value of SEM.
 
 If SEM is at zero, returns a promise that will resolve when
 another asynchronous function uses `aio-sem-post'."
-  (let ((value (cl-decf (aref sem 1))))
-    (when (< value 0)
-      (let ((promise (aio-promise)))
-        (prog1 promise
-          (push promise (aref sem 2)))))))
+  (when (< (cl-decf (aref sem 1)) 0)
+    (aio--queue-put (aref sem 2) (aio-promise))))
 
 (provide 'aio)
 
