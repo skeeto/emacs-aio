@@ -25,10 +25,8 @@
 (require 'generator)
 
 ;; Register new error types
-(setf (get 'aio-cancel 'error-conditions) '(aio-cancel error)
-      (get 'aio-cancel 'error-message) "Timeout was canceled")
-(setf (get 'aio-timeout 'error-conditions) '(aio-timeout error)
-      (get 'aio-timeout 'error-message) "Timeout was reached")
+(define-error 'aio-cancel "Promise was canceled")
+(define-error 'aio-timeout "Timeout was reached")
 
 (defun aio-promise ()
   "Create a new promise object."
