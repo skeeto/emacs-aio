@@ -367,7 +367,7 @@ SELECT is created with `aio-make-select'."
 (defun aio-select-promises (select)
   "Return a list of promises in SELECT.
 
-SELECT is created with `aio-make-select'. "
+SELECT is created with `aio-make-select'."
   (cl-loop for key being the hash-keys of (aref select 1)
            collect key))
 
