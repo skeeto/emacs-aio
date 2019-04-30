@@ -5,9 +5,10 @@ package builds upon Emacs 25 generators to provide functions that
 pause while they wait on asynchronous events. They do not block any
 thread while paused.
 
-See also: [An Async / Await Library for Emacs Lisp][post]
+Introduction: [An Async / Await Library for Emacs Lisp][post]
 
-Because it uses `record`, this package requires Emacs 26 or later.
+Installation is [available through MELPA][melpa]. Since it uses the
+`record` built-in, it requires Emacs 26 or later.
 
 ## Usage
 
@@ -177,4 +178,5 @@ configurable download queue for `url-retrieve`:
 
 
 [asyncio]: https://docs.python.org/3/library/asyncio.html
+[melpa]: https://melpa.org/#/aio
 [post]: https://nullprogram.com/blog/2019/03/10/
