@@ -27,7 +27,9 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'font-lock)
 (require 'generator)
+(require 'rx)
 
 ;; Register new error types
 (define-error 'aio-cancel "Promise was canceled")
@@ -428,6 +430,15 @@ If SEM is at zero, returns a promise that will resolve when
 another asynchronous function uses `aio-sem-post'."
   (when (< (cl-decf (aref sem 1)) 0)
     (aio--queue-put (aref sem 2) (aio-promise))))
+
+;;;; Additions to ‘emacs-lisp-mode’
+
+(font-lock-add-keywords
+ #'emacs-lisp-mode
+ ;; Fontify defined asynchronous functions as functions.
+ (list (list (rx "(aio-defun" (+ blank)
+                 (group (+ (or (syntax word) (syntax symbol)))))
+             1 ''font-lock-function-name-face)))
 
 (provide 'aio)
 
