@@ -171,7 +171,20 @@ underlying asynchronous operation will not actually be canceled."
 
 Since BODY is evalued inside an asynchronous lambda, `aio-await'
 is available here. This macro evaluates to a promise for BODY's
-eventual result."
+eventual result.
+
+Beware: Dynamic bindings that are lexically outside
+‘aio-with-async’ blocks have no effect.  For example,
+
+  (defvar dynamic-var nil)
+  (defun my-func ()
+    (let ((dynamic-var 123))
+      (aio-with-async dynamic-var)))
+  (let ((dynamic-var 456))
+    (aio-wait-for (my-func)))
+  ⇒ 456
+
+Other global state such as the current buffer behaves likewise."
   (declare (indent 0)
            (debug ([&rest [keywordp sexp]] def-body)))
   `(let ((promise (funcall (aio-lambda ()
