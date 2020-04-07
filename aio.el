@@ -150,7 +150,9 @@ value, or any uncaught error signal."
   (declare (indent defun)
            (doc-string 3)
            (debug (&define name sexp [&rest [keywordp sexp]] def-body)))
-  `(defalias ',name (aio-lambda ,arglist ,@body)))
+  `(progn
+     (defalias ',name (aio-lambda ,arglist ,@body))
+     (function-put ',name 'aio-defun-p t)))
 
 (defun aio-wait-for (promise)
   "Synchronously wait for PROMISE, blocking the current thread."
@@ -438,6 +440,15 @@ another asynchronous function uses `aio-sem-post'."
  `((,(rx "(aio-defun" (+ blank)
          (group (+ (or (syntax word) (syntax symbol)))))
     1 'font-lock-function-name-face)))
+
+(add-hook 'help-fns-describe-function-functions #'aio-describe-function)
+
+(defun aio-describe-function (function)
+  "Insert whether FUNCTION is an asynchronous function.
+This function is added to ‘help-fns-describe-function-functions’."
+  (when (function-get function 'aio-defun-p)
+    (insert "  This function is asynchronous; it returns "
+            "an ‘aio-promise’ object.\n")))
 
 (provide 'aio)
 
