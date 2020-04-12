@@ -126,7 +126,9 @@ returns a promise that will resolve to the function's return
 value, or any uncaught error signal.
 
 See Info node ‘(elisp)Lambda Components’ for a description of
-ARGLIST and BODY."
+ARGLIST and BODY.
+
+\(fn ARGLIST &optional DOCSTRING INTERACTIVE &rest BODY)"
   (declare (indent defun)
            (doc-string 3)
            (debug (&define lambda-list lambda-doc
