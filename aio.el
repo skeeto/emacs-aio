@@ -133,7 +133,7 @@ value, or any uncaught error signal."
            (doc-string 3)
            (debug (&define lambda-list lambda-doc
                            [&optional ("interactive" interactive)]
-                           def-body)))
+                           &rest sexp)))
   (let ((args (make-symbol "args"))
         (promise (make-symbol "promise"))
         (split-body (macroexp-parse-body body)))
@@ -151,7 +151,7 @@ value, or any uncaught error signal."
   "Like `aio-lambda' but gives the function a name like `defun'."
   (declare (indent defun)
            (doc-string 3)
-           (debug (&define name lambda-list def-body)))
+           (debug (&define name lambda-list &rest sexp)))
   `(progn
      (defalias ',name (aio-lambda ,arglist ,@body))
      (function-put ',name 'aio-defun-p t)))
@@ -190,7 +190,7 @@ Beware: Dynamic bindings that are lexically outside
 
 Other global state such as the current buffer behaves likewise."
   (declare (indent 0)
-           (debug (body)))
+           (debug (&rest sexp)))
   `(let ((promise (funcall (aio-lambda ()
                              (aio-await (aio-sleep 0))
                              ,@body))))
