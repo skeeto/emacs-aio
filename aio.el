@@ -457,6 +457,13 @@ another asynchronous function uses `aio-sem-post'."
     1 'font-lock-function-name-face)))
 
 (add-hook 'help-fns-describe-function-functions #'aio-describe-function)
+(add-hook 'emacs-lisp-mode-hook
+          (lambda ()
+            (add-to-list 'imenu-generic-expression
+                         `("Async"
+                           ,(rx "(aio-defun" (+ space)
+                                (group symbol-start (+ graphic) symbol-end))
+                           1))))
 
 (defun aio-describe-function (function)
   "Insert whether FUNCTION is an asynchronous function.
