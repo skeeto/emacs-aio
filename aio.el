@@ -148,13 +148,31 @@ value, or any uncaught error signal."
            (aio--step iter ,promise nil))))))
 
 (defmacro aio-defun (name arglist &rest body)
-  "Like `aio-lambda' but gives the function a name like `defun'."
+  "Like `aio-lambda' but gives the function a name like `defun'.
+
+\(fn NAME ARGLIST &optional DOCSTRING DECL INTERACTIVE &rest BODY)"
   (declare (indent defun)
            (doc-string 3)
            (debug (&define name lambda-list &rest sexp)))
-  `(progn
-     (defalias ',name (aio-lambda ,arglist ,@body))
-     (function-put ',name 'aio-defun-p t)))
+  (or name (error "Cannot define `%s' as a function" name))
+  (let* ((split-body (macroexp-parse-body body))
+         (declarations (car split-body))
+         (body (cdr split-body))
+         (docstring (and (stringp (car declarations)) (pop declarations)))
+         (declares (and (eq (car-safe (car declarations)) #'declare)
+                        (cdr (pop declarations)))))
+    ;; Other declarations (e.g., ‘interactive’ forms) are left as-is.
+    `(progn
+       (defalias ',name (aio-lambda ,arglist ,docstring ,@declarations ,@body))
+       (function-put ',name 'aio-defun-p t)
+       ,@(mapcar
+          (lambda (declare)
+            (let* ((prop (car declare))
+                   (args (cdr declare))
+                   (fun (assq prop defun-declarations-alist)))
+              (or fun (error "Unknown ‘defun’ declaration property %s" prop))
+              (apply (cadr fun) name arglist args)))
+          declares))))
 
 (defun aio-wait-for (promise)
   "Synchronously wait for PROMISE, blocking the current thread."

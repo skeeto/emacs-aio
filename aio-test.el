@@ -13,6 +13,10 @@
 (require 'aio)
 (require 'cl-lib)
 (require 'ert)
+(require 'help)
+(require 'help-fns)
+(require 'rx)
+(require 'sort)
 
 (defmacro aio-with-test (timeout &rest body)
   "Run body asynchronously but block synchronously until it completes.
@@ -135,3 +139,32 @@ aio-timeout to cause the test to fail."
       ;; Check that the threads ran in correct order
       (should (equal (number-sequence 0 63)
                      (nreverse output))))))
+
+(aio-defun aio-test-fun (foo &optional bar)
+  "Reticulate the splines.
+
+\(fn FOO &optional QUX)"
+  (declare (obsolete nil nil))
+  (interactive "sFoo: ")
+  (list foo bar))
+
+(ert-deftest aio-defun ()
+  "Test that declarations and ‘interactive’ forms in ‘aio-defun’ work."
+  (should (commandp 'aio-test-fun))
+  (should (equal (interactive-form 'aio-test-fun) '(interactive "sFoo: ")))
+  (should (equal (help-split-fundoc (documentation 'aio-test-fun)
+                                    'aio-test-fun 'doc)
+                 "Reticulate the splines."))
+  (should (equal (help-function-arglist 'aio-test-fun :preserve-names)
+                 '(foo &optional qux)))
+  (should (string-match-p
+           (rx bos "an interactive " (? "compiled ") "Lisp function")
+           (with-output-to-string
+             (help-fns-function-description-header 'aio-test-fun))))
+  (with-temp-buffer
+    (run-hook-with-args 'help-fns-describe-function-functions 'aio-test-fun)
+    (sort-lines nil (point-min) (point-max))
+    (should (equal (buffer-string)
+                   (concat "  This function is asynchronous; "
+                           "it returns an ‘aio-promise’ object.\n"
+                           "  This function is obsolete.\n")))))
