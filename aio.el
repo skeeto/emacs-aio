@@ -128,7 +128,9 @@ This macro can only be used inside an async function, either
 The body of this function may use `aio-await' to wait on
 promises. When an async function is called, it immediately
 returns a promise that will resolve to the function's return
-value, or any uncaught error signal."
+value, or any uncaught error signal.
+
+\(fn ARGLIST &optional DOCSTRING INTERACTIVE &rest BODY)"
   (declare (indent defun)
            (doc-string 3)
            (debug (&define lambda-list lambda-doc
