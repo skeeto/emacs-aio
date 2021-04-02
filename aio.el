@@ -29,6 +29,7 @@
 (require 'cl-lib)
 (require 'font-lock)
 (require 'generator)
+(require 'macroexp)
 (require 'rx)
 
 ;; Register new error types
@@ -104,7 +105,7 @@ promise and rethrown in the promise's listeners."
   (cl-assert (eq lexical-binding t))
   `(aio-resolve ,promise
                 (condition-case error
-                    (let ((result (progn ,@body)))
+                    (let ((result ,(macroexp-progn body)))
                       (lambda () result))
                   (error (lambda ()
                            (signal (car error) (cdr error)))))))
