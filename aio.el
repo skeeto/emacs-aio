@@ -5,7 +5,7 @@
 ;; Author: Christopher Wellons <wellons@nullprogram.com>
 ;; URL: https://github.com/skeeto/emacs-aio
 ;; Version: 1.0
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "26.1") (iter2 "1.0"))
 
 ;;; Commentary:
 
@@ -29,6 +29,7 @@
 (require 'cl-lib)
 (require 'font-lock)
 (require 'generator)
+(require 'iter2)
 (require 'rx)
 
 ;; Register new error types
@@ -140,7 +141,7 @@ value, or any uncaught error signal."
     `(lambda (&rest ,args)
        ,@(car split-body)
        (let* ((,promise (aio-promise))
-              (iter (apply (iter-lambda ,arglist
+              (iter (apply (iter2-lambda ,arglist
                              (aio-with-promise ,promise
                                ,@(cdr split-body)))
                            ,args)))
