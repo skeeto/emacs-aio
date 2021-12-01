@@ -5,7 +5,7 @@
 ;;  $ emacs -batch -Q -l aio-test.elc -f ert-run-tests-batch
 
 ;; Because the tests run as async functions, the test suite cannot be
-;; run in batch mode. The results will be written into a buffer and
+;; run in batch mode.  The results will be written into a buffer and
 ;; Emacs will be left running so you can see the results.
 
 ;;; Code:
@@ -19,10 +19,10 @@
 (require 'sort)
 
 (defmacro aio-with-test (timeout &rest body)
-  "Run body asynchronously but block synchronously until it completes.
+  "Run BODY asynchronously but block synchronously until it completes.
 
 If TIMEOUT seconds passes without completion, signal an
-aio-timeout to cause the test to fail."
+`aio-timeout' to cause the test to fail."
   (declare (indent 1))
   `(let* ((promises (list (aio-with-async ,@body)
                           (aio-timeout ,timeout)))
@@ -168,3 +168,4 @@ aio-timeout to cause the test to fail."
                    (concat "  This function is asynchronous; "
                            "it returns an ‘aio-promise’ object.\n"
                            "  This function is obsolete.\n")))))
+;;; aio-test.el ends here
