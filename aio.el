@@ -50,8 +50,7 @@
 
 Promise results are wrapped in a function.  The result must be
 called (e.g. `funcall') in order to retrieve the value."
-  (unless (aio-promise-p promise)
-    (signal 'wrong-type-argument (list 'aio-promise-p promise)))
+  (cl-check-type promise aio-promise)
   (aref promise 1))
 
 (defun aio-listen (promise callback)
@@ -71,8 +70,7 @@ A promise can only be resolved once, and any further calls to
 `aio-resolve' are silently ignored.  The VALUE-FUNCTION must be a
 function that takes no arguments and either returns the result
 value or rethrows a signal."
-  (unless (functionp value-function)
-    (signal 'wrong-type-argument (list 'functionp value-function)))
+  (cl-check-type value-function function)
   (unless (aio-result promise)
     (let ((callbacks (nreverse (aref promise 2))))
       (setf (aref promise 1) value-function
