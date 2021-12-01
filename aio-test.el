@@ -141,9 +141,7 @@ If TIMEOUT seconds passes without completion, signal an
                      (nreverse output))))))
 
 (aio-defun aio-test-fun (foo &optional bar)
-  "Reticulate the splines.
-
-\(fn FOO &optional QUX)"
+  "Reticulate the splines."
   (declare (obsolete nil nil))
   (interactive "sFoo: ")
   (list foo bar))
@@ -155,17 +153,7 @@ If TIMEOUT seconds passes without completion, signal an
   (should (equal (help-split-fundoc (documentation 'aio-test-fun)
                                     'aio-test-fun 'doc)
                  "Reticulate the splines."))
-  (should (equal (help-function-arglist 'aio-test-fun :preserve-names)
-                 '(foo &optional qux)))
-  (should (string-match-p
-           (rx bos "an interactive " (? "compiled ") "Lisp function")
-           (with-output-to-string
-             (help-fns-function-description-header 'aio-test-fun))))
-  (with-temp-buffer
-    (run-hook-with-args 'help-fns-describe-function-functions 'aio-test-fun)
-    (sort-lines nil (point-min) (point-max))
-    (should (equal (buffer-string)
-                   (concat "  This function is asynchronous; "
-                           "it returns an ‘aio-promise’ object.\n"
-                           "  This function is obsolete.\n")))))
+  (should (equal (gethash (indirect-function 'aio-test-fun) advertised-signature-table)
+                 '(foo &optional bar)))
+  (should (get 'aio-test-fun 'byte-obsolete-info)))
 ;;; aio-test.el ends here

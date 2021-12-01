@@ -175,7 +175,9 @@ ARGLIST and BODY."
                    (fun (assq prop defun-declarations-alist)))
               (or fun (error "Unknown ‘defun’ declaration property %s" prop))
               (apply (cadr fun) name arglist args)))
-          declares))))
+          declares)
+       (set-advertised-calling-convention (indirect-function ',name) ',arglist nil)
+       ',name)))
 
 (defun aio-wait-for (promise)
   "Synchronously wait for PROMISE, blocking the current thread."
