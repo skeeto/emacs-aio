@@ -493,6 +493,9 @@ This function is added to ‘help-fns-describe-function-functions’."
     (insert "  This function is asynchronous; it returns "
             "an ‘aio-promise’ object.\n")))
 
+(add-to-list 'lisp-imenu-generic-expression
+             (list nil (concat "^\\s-*(aio-defun\\s-+\\(" lisp-mode-symbol-regexp "\\)") 1))
+
 (provide 'aio)
 
 ;;; aio.el ends here
