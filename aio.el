@@ -236,8 +236,6 @@ a chain of promise-yielding promises."
 
 ;; Useful promise-returning functions:
 
-(require 'url)
-
 (aio-defun aio-all (promises)
   "Return a promise that resolves when all PROMISES are resolved."
   (dolist (promise promises)
@@ -298,6 +296,7 @@ caller.
 Arguments URL, SILENT, and INHIBIT-COOKIES are passed on to
 `url-retrieve', which see.  Also see Info node ‘(url)Retrieving
 URLs’ for details."
+  (require 'url)
   (let ((promise (aio-promise)))
     (prog1 promise
       (condition-case error
