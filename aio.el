@@ -31,6 +31,7 @@
 (require 'generator)
 (require 'macroexp)
 (require 'rx)
+(require 'iter2 nil t)
 
 ;; Register new error types
 (define-error 'aio-cancel "Promise was canceled")
@@ -134,15 +135,25 @@ ARGLIST and BODY."
   (let ((args (make-symbol "args"))
         (promise (make-symbol "promise"))
         (split-body (macroexp-parse-body body)))
-    `(lambda (&rest ,args)
-       ,@(car split-body)
-       (let* ((,promise (aio-promise))
-              (iter (apply (iter-lambda ,arglist
-                             (aio-with-promise ,promise
-                               ,@(cdr split-body)))
-                           ,args)))
-         (prog1 ,promise
-           (aio--step iter ,promise nil))))))
+    (if (fboundp 'iter2-lambda)
+        `(lambda (&rest ,args)
+           ,@(car split-body)
+           (let* ((,promise (aio-promise))
+                  (iter (apply (iter2-lambda ,arglist
+                                 (aio-with-promise ,promise
+                                   ,@(cdr split-body)))
+                               ,args)))
+             (prog1 ,promise
+               (aio--step iter ,promise nil))))
+      `(lambda (&rest ,args)
+         ,@(car split-body)
+         (let* ((,promise (aio-promise))
+                (iter (apply (iter-lambda ,arglist
+                               (aio-with-promise ,promise
+                                 ,@(cdr split-body)))
+                             ,args)))
+           (prog1 ,promise
+             (aio--step iter ,promise nil)))))))
 
 (defmacro aio-defun (name arglist &rest body)
   "Like `aio-lambda' but gives the function a NAME like `defun'.
