@@ -36,22 +36,17 @@
 (define-error 'aio-cancel "Promise was canceled")
 (define-error 'aio-timeout "Timeout was reached")
 
-(defun aio-promise ()
-  "Create a new promise object."
-  (record 'aio-promise nil ()))
-
-(defsubst aio-promise-p (object)
-  "Return non-nil if OBJECT is a promise."
-  (and (eq 'aio-promise (type-of object))
-       (= 3 (length object))))
+(cl-defstruct (aio-promise (:constructor aio-promise))
+  "A promise object."
+  result
+  callbacks)
 
 (defsubst aio-result (promise)
   "Return the result of PROMISE, or nil if it is unresolved.
 
 Promise results are wrapped in a function.  The result must be
 called (e.g. `funcall') in order to retrieve the value."
-  (cl-check-type promise aio-promise)
-  (aref promise 1))
+  (aio-promise-result promise))
 
 (defun aio-listen (promise callback)
   "Add CALLBACK to PROMISE.
@@ -61,7 +56,7 @@ scheduled for the next event loop turn."
   (let ((result (aio-result promise)))
     (if result
         (run-at-time 0 nil callback result)
-      (push callback (aref promise 2)))))
+      (push callback (aio-promise-callbacks promise)))))
 
 (defun aio-resolve (promise value-function)
   "Resolve this PROMISE with VALUE-FUNCTION.
@@ -72,9 +67,9 @@ function that takes no arguments and either returns the result
 value or rethrows a signal."
   (cl-check-type value-function function)
   (unless (aio-result promise)
-    (let ((callbacks (nreverse (aref promise 2))))
-      (setf (aref promise 1) value-function
-            (aref promise 2) ())
+    (let ((callbacks (nreverse (aio-promise-callbacks promise))))
+      (setf (aio-promise-result promise) value-function
+            (aio-promise-callbacks promise) ())
       (dolist (callback callbacks)
         (run-at-time 0 nil callback value-function)))))
 
@@ -376,18 +371,20 @@ An empty queue is (nil . nil)."
               (cdr queue) new)))))
 
 ;; An efficient select()-like interface for promises
+(cl-defstruct (aio-select (:constructor aio--make-select))
+  "A select() object for waiting on multiple promises."
+  ;; Membership table
+  (members (make-hash-table :test 'eq))
+  ;; "Seen" table (avoid adding multiple callback)
+  (seen (make-hash-table :test 'eq :weakness 'key))
+  ;; Queue of pending resolved promises
+  (queue (cons nil nil))
+  ;; Callback to resolve select's own promise
+  callback)
 
 (defun aio-make-select (&optional promises)
   "Create a new `aio-select' object for waiting on multiple PROMISES."
-  (let ((select (record 'aio-select
-                        ;; Membership table
-                        (make-hash-table :test 'eq)
-                        ;; "Seen" table (avoid adding multiple callback)
-                        (make-hash-table :test 'eq :weakness 'key)
-                        ;; Queue of pending resolved promises
-                        (cons nil nil)
-                        ;; Callback to resolve select's own promise
-                        nil)))
+  (let ((select (aio--make-select)))
     (prog1 select
       (dolist (promise promises)
         (aio-select-add select promise)))))
@@ -397,8 +394,8 @@ An empty queue is (nil . nil)."
 
 SELECT is created with `aio-make-select'.  It is valid to add a
 promise that was previously removed."
-  (let ((members (aref select 1))
-        (seen (aref select 2)))
+  (let ((members (aio-select-members select))
+        (seen (aio-select-seen select)))
     (prog1 promise
       (unless (gethash promise seen)
         (setf (gethash promise seen) t
@@ -406,24 +403,24 @@ promise that was previously removed."
         (aio-listen promise
                     (lambda (_)
                       (when (gethash promise members)
-                        (aio--queue-put (aref select 3) promise)
+                        (aio--queue-put (aio-select-queue select) promise)
                         (remhash promise members)
-                        (let ((callback (aref select 4)))
+                        (let ((callback (aio-select-callback select)))
                           (when callback
-                            (setf (aref select 4) nil)
+                            (setf (aio-select-callback select) nil)
                             (funcall callback))))))))))
 
 (defun aio-select-remove (select promise)
   "Remove PROMISE form the set of promises in SELECT.
 
 SELECT is created with `aio-make-select'."
-  (remhash promise (aref select 1)))
+  (remhash promise (aio-select-members select)))
 
 (defun aio-select-promises (select)
   "Return a list of promises in SELECT.
 
 SELECT is created with `aio-make-select'."
-  (cl-loop for key being the hash-keys of (aref select 1)
+  (cl-loop for key being the hash-keys of (aio-select-members select)
            collect key))
 
 (defun aio-select (select)
@@ -440,30 +437,32 @@ promise, not that promise's result.  You will need to `aio-await'
 on it, or use `aio-result'."
   (let* ((result (aio-promise))
          (callback (lambda ()
-                     (let ((promise (aio--queue-get (aref select 3))))
+                     (let ((promise (aio--queue-get (aio-select-queue select))))
                        (aio-resolve result (lambda () promise))))))
     (prog1 result
-      (if (aio--queue-empty-p (aref select 3))
-          (setf (aref select 4) callback)
+      (if (aio--queue-empty-p (aio-select-queue select))
+          (setf (aio-select-callback select) callback)
         (funcall callback)))))
 
 ;; Semaphores
+(cl-defstruct (aio-sem (:constructor aio--make-sem))
+  "A semaphore object."
+  ;; Semaphore value
+  (value 0)
+  ;; Queue of waiting async functions
+  (queue (cons nil nil)))
 
 (defun aio-sem (init)
   "Create a new semaphore with initial value INIT."
-  (record 'aio-sem
-          ;; Semaphore value
-          init
-          ;; Queue of waiting async functions
-          (cons nil nil)))
+  (aio--make-sem :value init))
 
 (defun aio-sem-post (sem)
   "Increment the value of SEM.
 
 If asynchronous functions are awaiting on SEM, then one will be
 woken up.  This function is not awaitable."
-  (when (<= (cl-incf (aref sem 1)) 0)
-    (let ((waiting (aio--queue-get (aref sem 2))))
+  (when (<= (cl-incf (aio-sem-value sem)) 0)
+    (let ((waiting (aio--queue-get (aio-sem-queue sem))))
       (when waiting
         (aio-resolve waiting (lambda () nil))))))
 
@@ -472,8 +471,8 @@ woken up.  This function is not awaitable."
 
 If SEM is at zero, returns a promise that will resolve when
 another asynchronous function uses `aio-sem-post'."
-  (when (< (cl-decf (aref sem 1)) 0)
-    (aio--queue-put (aref sem 2) (aio-promise))))
+  (when (< (cl-decf (aio-sem-value sem)) 0)
+    (aio--queue-put (aio-sem-queue sem) (aio-promise))))
 
 ;; `emacs-lisp-mode' font lock
 
