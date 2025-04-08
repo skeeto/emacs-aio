@@ -242,10 +242,11 @@ a chain of promise-yielding promises."
 
 ;; Useful promise-returning functions:
 
-(aio-defun aio-all (promises)
+(defmacro aio-all (promises)
   "Return a promise that resolves when all PROMISES are resolved."
-  (dolist (promise promises)
-    (aio-await promise)))
+  `(let ((promises ,promises))
+      (while-let ((promise (pop promises)))
+        (aio-await promise))))
 
 (defun aio-catch (promise)
   "Return a new promise that wraps PROMISE but will never signal.
