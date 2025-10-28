@@ -288,8 +288,8 @@ automatically wrapped with a value function (see `aio-resolve')."
   "Create a promise with a timeout error after SECONDS."
   (let ((timeout (aio-promise)))
     (prog1 timeout
-      (run-at-time seconds nil#'aio-resolve timeout
-                   (lambda () (signal 'aio-timeout seconds))))))
+      (run-at-time seconds nil
+                   #'aio-resolve timeout (lambda () (signal 'aio-timeout seconds))))))
 
 (defun aio-url-retrieve (url &optional silent inhibit-cookies)
   "Wraps `url-retrieve' in a promise.
