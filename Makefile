@@ -1,19 +1,18 @@
 .POSIX:
 EMACS = emacs
+EASK = eask
 
-compile: aio.elc aio-test.elc
-
-aio.elc: aio.el
-aio-test.elc: aio-test.el aio.elc
+ci: clean build compile check
 
 clean:
-	rm -f aio.elc aio-test.elc
+	$(EASK) clean elc
 
-check: aio-test.elc
-	$(EMACS) -batch -Q -L . -l aio-test.elc -f ert-run-tests-batch
+build:
+	$(EASK) package
+	$(EASK) install
 
-.SUFFIXES: .el .elc
-.el.elc:
-	$(EMACS) -batch -Q -L . -f batch-byte-compile $<
+compile:
+	$(EASK) compile
 
-
+check:
+	$(EASK) test ert aio-test.el
