@@ -156,8 +156,7 @@ If TIMEOUT seconds passes without completion, signal an
   "Test that declarations and ‘interactive’ forms in ‘aio-defun’ work."
   (should (commandp 'aio-test-fun))
   (should (equal (interactive-form 'aio-test-fun) '(interactive "sFoo: ")))
-  (should (equal (help-split-fundoc (documentation 'aio-test-fun)
-                                    'aio-test-fun 'doc)
+  (should (equal (cdr (help-split-fundoc (documentation 'aio-test-fun) 'aio-test-fun))
                  "Reticulate the splines."))
   (should (equal (gethash (indirect-function 'aio-test-fun) advertised-signature-table)
                  '(foo &optional bar)))
