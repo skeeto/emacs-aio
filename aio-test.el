@@ -91,9 +91,15 @@ If TIMEOUT seconds passes without completion, signal an
             (should (> result last))
             (setf last result)))))))
 
+(defun aio-test--start-process-shell-command (command)
+  "Run `start-process-shell-command' ignoring $SHELL on Windows."
+  (let ((shell-file-name
+         (if (eq system-type 'windows-nt) "cmdproxy" shell-file-name)))
+    (start-process-shell-command "aio-test" nil command)))
+
 (ert-deftest process-sentinel ()
   (aio-with-test 10
-    (let ((process (start-process-shell-command "test" nil "exit 0"))
+    (let ((process (aio-test--start-process-shell-command "exit 0"))
           (sentinel (aio-make-callback)))
       (setf (process-sentinel process) (car sentinel))
       (should (equal "finished\n"
@@ -110,7 +116,7 @@ If TIMEOUT seconds passes without completion, signal an
                              "waitfor /t 1 x 2>nul")
                            "&")
               "echo a b c; sleep 1; echo 1 2 3; sleep 1"))
-           (process (start-process-shell-command "test" nil command))
+           (process (aio-test--start-process-shell-command command))
            (filter (aio-make-callback)))
       (setf (process-filter process) (car filter))
       (should (equal "a b c\n"
