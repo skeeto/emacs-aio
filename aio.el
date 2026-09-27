@@ -298,9 +298,8 @@ automatically wrapped with a value function (see `aio-resolve')."
 
 This function will never directly signal an error.  Instead any
 errors will be delivered via the returned promise.  The promise
-result is a cons of (status . buffer).  This buffer is a clone of
-the buffer created by `url-retrieve' and should be killed by the
-caller.
+result is a cons of (status . buffer).  This buffer is the one
+created by `url-retrieve' and should be killed by the caller.
 
 Arguments URL, SILENT, and INHIBIT-COOKIES are passed on to
 `url-retrieve', which see.  Also see Info node ‘(url)Retrieving
@@ -310,7 +309,7 @@ URLs’ for details."
     (prog1 promise
       (condition-case error
           (url-retrieve url (lambda (status)
-                              (let ((value (cons status (clone-buffer))))
+                              (let ((value (cons status (current-buffer))))
                                 (aio-resolve promise (lambda () value))))
                         silent inhibit-cookies)
         (error (aio-resolve promise

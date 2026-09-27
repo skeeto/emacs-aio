@@ -124,6 +124,19 @@ If TIMEOUT seconds passes without completion, signal an
       (should (equal "1 2 3\n"
                      (nth 1 (aio-chain (cdr filter))))))))
 
+(ert-deftest url-retrieve ()
+  "Test that `aio-url-retrieve' does not leak buffers."
+  (aio-with-test 10
+    (let ((before (length (buffer-list))))
+      (dotimes (_ 8)
+        (let ((buffer (cdr (aio-await
+                            (aio-url-retrieve "data:text/plain,hello")))))
+          (with-current-buffer buffer
+            (goto-char (point-min))
+            (should (search-forward "hello" nil t)))
+          (kill-buffer buffer)))
+      (should (= before (length (buffer-list)))))))
+
 (ert-deftest sem ()
   (aio-with-test 5
     (let ((n 64)
