@@ -311,7 +311,7 @@ URLs’ for details."
           (url-retrieve url (lambda (status)
                               (let ((value (cons status (current-buffer))))
                                 (aio-resolve promise (lambda () value))))
-                        silent inhibit-cookies)
+                        nil silent inhibit-cookies)
         (error (aio-resolve promise
                             (lambda ()
                               (signal (car error) (cdr error)))))))))

@@ -137,6 +137,13 @@ If TIMEOUT seconds passes without completion, signal an
           (kill-buffer buffer)))
       (should (= before (length (buffer-list)))))))
 
+(ert-deftest url-retrieve-silent ()
+  "Test that `aio-url-retrieve' passes SILENT to `url-retrieve'."
+  (aio-with-test 2
+    (let ((buffer (cdr (aio-await
+                        (aio-url-retrieve "data:text/plain,hello" t t)))))
+      (kill-buffer buffer))))
+
 (ert-deftest sem ()
   (aio-with-test 5
     (let ((n 64)
