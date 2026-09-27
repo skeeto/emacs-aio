@@ -53,6 +53,23 @@ function that awaits on that function.
 ;; => :arith-error
 ```
 
+The current buffer is part of an async function's state. It persists
+across `aio-await`, and changing it never affects the function's
+caller. So `aio-await` works inside `with-current-buffer`,
+`save-current-buffer`, and `save-excursion`:
+
+```el
+(aio-defun fetch-into (buffer url)
+  (with-current-buffer buffer
+    (let ((result (aio-await (aio-url-retrieve url))))
+      (insert-buffer-substring (cdr result))
+      (kill-buffer (cdr result)))))
+```
+
+If that buffer is killed while the function is paused inside one of
+these forms, `aio-await` signals an error rather than continuing in
+some other buffer.
+
 To convert a callback-based function into an awaitable, async-friendly
 function, create a new promise object with `aio-promise`, then
 `aio-resolve` that promise in the callback. The helper function,
